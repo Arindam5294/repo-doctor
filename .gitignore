@@ -1,0 +1,7 @@
+config.json
+reports/
+doctor-reports/
+last_run.json
+OFF
+.env
+__pycache__/
