@@ -1,0 +1,49 @@
+# Example: run Repo Doctor every morning from ANY repo of yours (a private "ops" repo is ideal).
+# Copy to .github/workflows/repo-doctor.yml, add config.json next to it (see config.example.json),
+# and add the secrets below. Only DOCTOR_GH_TOKEN and one AI key are required.
+name: Repo Doctor
+on:
+  schedule:
+    - cron: "30 0 * * *"        # daily, 00:30 UTC
+  workflow_dispatch:
+    inputs:
+      repos:   { description: "Only these repos (comma list). Blank = all", required: false, default: "" }
+      dry_run: { description: "true = diagnose and report only, change nothing", required: false, default: "false" }
+permissions:
+  contents: write
+concurrency: { group: repo-doctor, cancel-in-progress: false }
+jobs:
+  doctor:
+    if: ${{ vars.DOCTOR_OFF != 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 80
+    env:
+      DOCTOR_GH_TOKEN: ${{ secrets.DOCTOR_GH_TOKEN }}     # fine-grained PAT: contents, pull requests, actions, workflows (read/write)
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}       # any of these free keys works; add as many as you like
+      GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}   # optional: report on Telegram
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      DOCTOR_CONFIG: config.json
+      DOCTOR_REPORTS_DIR: doctor-reports
+      DOCTOR_STATE_FILE: doctor-reports/last_run.json
+      ONLY_REPOS: ${{ github.event.inputs.repos }}
+      DRY_RUN: ${{ github.event.inputs.dry_run || 'false' }}
+      PYTHONUNBUFFERED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4            # the engine, pinned to a release
+        with: { repository: Arindam5294/repo-doctor, ref: v1.0.0, path: .repo-doctor }
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - uses: actions/setup-node@v4
+        with: { node-version: "20" }
+      - run: pip install -q -r .repo-doctor/requirements.txt
+      - name: Check, fix and report
+        run: python .repo-doctor/repo_doctor.py
+      - name: Keep the report in this repo
+        if: always()
+        run: |
+          git config user.name "Repo Doctor"; git config user.email "doctor@users.noreply.github.com"
+          git add doctor-reports 2>/dev/null || true
+          git diff --cached --quiet || { git commit -qm "Repo Doctor report $(date +%F)"; git pull -q --rebase && git push -q; }
