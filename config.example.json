@@ -1,0 +1,21 @@
+{
+  "_help": "Copy to config.json and edit. owner = GitHub user/org whose repos are checked (blank = the token's own account). skip_repos = never touched. report_only_repos = diagnosed and explained, never changed. hold_paths = paths it must not edit until a date. never_edit = any path containing one of these words is off-limits. never_rerun = workflows it will not re-start after a fix (anything that posts, deploys or spends). Emergency stop: create the OFF file or set DOCTOR_OFF=true.",
+  "owner": "your-github-username",
+  "timezone": "UTC",
+  "skip_repos": ["repo-doctor"],
+  "report_only_repos": ["my-critical-production-app"],
+  "hold_paths": [
+    {"repo": "my-website", "path": "legacy/", "until": "2099-12-31", "why": "being rewritten by hand"}
+  ],
+  "never_edit": [".env", "secret", ".pem", "id_rsa", "payments/", "billing", "wallet"],
+  "never_rerun": ["deploy", "publish", "release", "pages", "post", "upload"],
+  "ignore_dirs": ["node_modules", ".git", "vendor", "third_party", "dist", "build", ".venv", "venv", "__pycache__"],
+  "blocked_providers": [],
+  "report_footer": "",
+  "recent_days": 7,
+  "max_files_per_fix": 10,
+  "max_lines_per_fix": 300,
+  "max_fix_rounds": 2,
+  "max_llm_calls": 24,
+  "time_budget_minutes": 60
+}
